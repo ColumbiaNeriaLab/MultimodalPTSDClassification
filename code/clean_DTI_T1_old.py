@@ -76,7 +76,7 @@ def clean_T1(overwrite=False):
         return
     
     # Renaming and dropping columns
-    T1_path = os.path.join(T1_DTI_path, 'new', 'T1_Xin_fixed_v18c_cleaned.csv')
+    T1_path = os.path.join(T1_DTI_path, 'T1_cleaned_v2.csv')
     df = pd.read_csv(T1_path)
     
     rename_dict = {}
@@ -89,31 +89,21 @@ def clean_T1(overwrite=False):
     cols = df.columns.tolist()
     
     for c in cols:
-        if c == 'SUBJECT_ID':
+        if c == 'SubjID':
             rename_dict[c] = 'SubjectID'
-        elif 'SITES' in c:
-            rename_dict[c] = 'Site'
-        elif 'groupPTSDVscontrol' in c:
+        elif 'CurrPTSDdx' in c:
             rename_dict[c] = 'Diagnosis'
-        elif 'AGE' in c:
-            rename_dict[c] = 'Age'
-        elif 'SEX' in c:
-            rename_dict[c] = 'Sex'
             
     df.rename(columns=rename_dict, inplace=True)
     
-    df = df[(df['Age'] != 'NA') & (df['Sex'] != 'NA')]
-    cols_remaining = df.columns[df.columns.to_series().apply(lambda x : (x in ['SubjectID', 'Site', 'Diagnosis', 'Age', 'Sex']) or 'L_' in x or 'R_' in x)]
-    df = df[cols_remaining]
-    df['Diagnosis'] = df['Diagnosis'].map({'PTSD':'PTSD', 'control':'Control'})
-    ##df.dropna(subset=['Age', 'Sex', 'Diagnosis'], inplace=True)
+    df.dropna(subset=['Age', 'Sex', 'Diagnosis'], inplace=True)
     
     # Remapping values to match other datasets
     ##diag_map = {'TEHC':'Control', 'HC':'Control', 'SubThresh':'Subthreshold', 'PTSD':'PTSD', 'Control':'Control'}
-    ##sex_map = {'Male':'M', 'Female':'F'}
+    sex_map = {'Male':'M', 'Female':'F'}
     
     ##df['Diagnosis'] = df['Diagnosis'].map(diag_map)
-    ##df['Sex'] = df['Sex'].map(sex_map)
+    df['Sex'] = df['Sex'].map(sex_map)
     
     df.to_csv(T1_cleaned_path, index=False)
     
@@ -165,8 +155,8 @@ if __name__ == "__main__":
     ##clean_DTI(overwrite=True)
     clean_T1(overwrite=True)
     ##clean_T1_combat(overwrite=True)
-    '''
+    
     df = load_T1_combat_cleaned()
     print(len(df.index))
     print(df.columns.tolist())
-    '''
+    

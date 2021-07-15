@@ -9,8 +9,8 @@ from fileutils import *
 Setting up paths relevant to clinical data and serialized
 clinical data
 '''
-clinical_path = os.path.join(raw_data_path, "clinical_data", "new")
-feather_path = os.path.join(serialized_path, 'clinical', 'raw_data')
+clinical_path = os.path.join(raw_data_path, "clinical_data")
+feather_path = os.path.join(serialized_path, 'raw_data', 'clinical')
 
 
 def serialize_clinical(overwrite=False):
@@ -22,7 +22,7 @@ def serialize_clinical(overwrite=False):
             Whether to overwrite the existing serialized data
     '''
     # Generate a map for mapping different csv headers to a unified header
-    sheet_map_raw = {('default',):('Clinical data',), ('Beijing', 'Groningen', 'Munster', 'NanjingYixing','Tours','Utrecht','Vanderbilt', 'WesternOntario', 'WestHaven_VA', 'Wisc_Cisler', 'Wisc_Grupe'):('Clinicaldemographic data',), ('Stanford',):('Clinicaldemographic data Brains', 'Clinicalsemographic data CC'), ('Toledo',):('demographics',), ('McLean', 'Michigan',):('Clinical Data',), ('Waco_VA',):('ENIGMA_Subject_Info',)}
+    sheet_map_raw = {('default',):('Clinical data',), ('Munster', 'NanjingYixing','Tours','Utrecht','Vanderbilt', 'WesternOntario', 'Westhaven_VA', 'Wisc_Cisler', 'Wisc_Grupe'):('Clinicaldemographic data',), ('Stanford',):('Clinicaldemographic data Brains', 'Clinicalsemographic data CC'), ('Toledo',):('demographics',), ('McLean', 'Michigan',):('Clinical Data',), ('Waco_VA',):('ENIGMA_Subject_Info',)}
     
     sheet_map = {}
     for k, v in sheet_map_raw.items():
@@ -30,15 +30,14 @@ def serialize_clinical(overwrite=False):
             sheet_map[e] = v
     
     # Filter files by site name
-    folders = os.listdir(clinical_path)
+    files = os.listdir(clinical_path)
+    unique_sites = load_site_subject()['Site'].unique()
 
     files_filtered = []
-    for folder in folders:
-        files = os.listdir(os.path.join(clinical_path, folder))
-        for file in files:
-            filename, ext = os.path.splitext(file)
-            if filename == folder:
-                files_filtered.append(file)
+    for file in files:
+        filename, ext = os.path.splitext(file)
+        if filename in unique_sites:
+            files_filtered.append(file)
     
     # If the serialized folder path doesn't exist, make it
     if not os.path.exists(feather_path):
@@ -64,13 +63,13 @@ def serialize_clinical(overwrite=False):
         for sheet in sheets:
             if sheet is None:
                 try:
-                    df = pd.read_excel(os.path.join(clinical_path, filename, file))
+                    df = pd.read_excel(os.path.join(clinical_path, file))
                 except Exception as e:
                     print(file)
                     raise e
             else:
                 try:
-                    df = pd.read_excel(os.path.join(clinical_path, filename, file), sheet_name=sheet)
+                    df = pd.read_excel(os.path.join(clinical_path, file), sheet_name=sheet)
                 except Exception as e:
                     print(file)
                     raise e
@@ -121,18 +120,17 @@ def clean_clinical(overwrite=False):
     
     col_list = []
     
-    feather_files = [f for f in os.listdir(feather_path) if not os.path.isdir(os.path.join(feather_path, f))]
-    
-    for f in feather_files:
+    for f in os.listdir(feather_path):
         print(f)
         fpath = os.path.join(feather_path, f)
         fname, _ = os.path.splitext(f)
         clinical_df = pd.read_feather(fpath)
+        ##print(clinical_df.columns)
         col_list.append(clinical_df.columns)
         clinical_df_clean = pd.DataFrame()
         
         # Cleaning ID column names and setting column
-        if fname == 'Ghent' or fname == 'Milwaukee':
+        if fname == 'Ghent':
             clinical_df_clean['SubjectID'] = clinical_df['ID']
         else:
             changed = False
@@ -143,7 +141,7 @@ def clean_clinical(overwrite=False):
                     break
             if not changed:
                 clinical_df_clean['SubjectID'] = clinical_df['ID']
-                
+            
         # Cleaning Diagnosis column names and setting column
         for diag_opt in diagnosis_options:
             if diag_opt in clinical_df.columns:
@@ -160,8 +158,8 @@ def clean_clinical(overwrite=False):
         def map_id(s):
             if fname == 'Columbia':
                 return str(int(s.replace('-', '')))
-            elif fname == 'Tours':
-                return s.replace('COPTSD_', '')
+            elif fname == 'Leiden':
+                return s.replace('Episca', '')
             elif fname == 'UMN':
                 return 'MARS2_' + s;
             elif fname == 'UWash':
@@ -256,5 +254,4 @@ def load_clinical():
 
 
 if __name__ == "__main__":
-    ##serialize_clinical(overwrite=True)
     clean_clinical(overwrite=True)

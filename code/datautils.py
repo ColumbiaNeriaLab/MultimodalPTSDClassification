@@ -948,9 +948,9 @@ def generate_datasets(load_corr=True, load_clinical=True, load_serialized=True, 
 
 
 if __name__ == "__main__":
-    ##match_corr_clinical(False)
+    match_corr_clinical(False)
     '''
     prepare_serialized(overwrite_orig=True, overwrite_site_regressed=True, drop_thresh=0.8, fill_empty="mean")
     '''
     ##merge_ica(False)
-    print(load_T1_combat())
+    ##print(load_T1_combat())

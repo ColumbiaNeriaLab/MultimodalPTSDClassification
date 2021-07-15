@@ -1,12 +1,14 @@
 import os
 import numpy as np
 import pandas as pd
+import re
 
 from fileutils import *
 
 
 # The filepath for the connectivity data
-atlas_con_path = os.path.join(raw_data_path, "atlas_connectivity", "unzipped")
+##atlas_con_path = os.path.join(raw_data_path, "atlas_connectivity", "unzipped")
+atlas_con_path = os.path.join(raw_data_path, "atlas_connectivity", "new", "unzipped")
 
 def site_subject(should_return=True):
     '''
@@ -24,27 +26,27 @@ def site_subject(should_return=True):
     
     # Iterate over all sites in the connectivity folder and add all of their
     for site in os.listdir(atlas_con_path):
-        # Special case for Toledo, where there are multiple subfolders before getting to_csv
-        # connectivity data
-        if site == "Toledo":
-            subfolders = os.listdir(os.path.join(atlas_con_path, site))
-            for subfolder in subfolders:
-                site_sub = site + '_' + subfolder
-                subjects = os.listdir(os.path.join(atlas_con_path, site, subfolder))
-                sites = [site] * len(subjects)
-                df_dict['Site'] += sites
-                df_dict['SubjectID'] += subjects
+        subjects = os.listdir(os.path.join(atlas_con_path, site))
+        subjects = [str(s).replace("sub-", "") for s in subjects if ".DS_Store" not in s and "Icon_" not in s]
+        # Special case for Capetown, where _ needs to be removed
+        # Also addresses the capetown tygerberg discrepancy in site names
+        # Edit: decided to ignore the capetown tygerberg discrepancy
+        if site == "Capetown":
+            subjects = [str(s).replace('_','') for s in subjects]
+            ##site_subject = [(s.split('-')[0], s.split('-')[1]) for s in subjects]
+            ##sites, subjects = list(map(list, zip(*site_subject)))
+            ##sites = list(map(lambda s: "UCT" if "capetown" in s else "Tygerberg", sites))
+            subjects = [s.split('-')[1] for s in subjects]
+            sites = [site] * len(subjects)
         else:
-            subjects = os.listdir(os.path.join(atlas_con_path, site))
-            # Special case for Capetown, where _ needs to be removed
-            if site == "Capetown":
-                subjects = [str(s).replace('_','') for s in subjects]
             # Special case for Columbia, where leading 0s need to be removed
-            elif site == "Columbia":
+            if site == "Columbia":
                 subjects = [str(s).lstrip('0') for s in subjects]
             sites = [site] * len(subjects)
-            df_dict['Site'] += sites
-            df_dict['SubjectID'] += subjects
+        df_dict['Site'] += sites
+        df_dict['SubjectID'] += subjects
+    
+    ##print(df_dict["SubjectID"])
     
     # Create the dataframe using the dictionary of subjects and sites
     df = pd.DataFrame.from_dict(df_dict)
@@ -95,7 +97,7 @@ def patient_corr_264(should_return=True):
     return:
         (optional) DataFrame containing subjects and their correlation matrices
     '''
-    fname = "corr_matrix_Power264.csv"
+    fpattern = "(.*)task-rest_feature-corrMatrix1_atlas-power2011(.*)correlation_matrix.tsv"
     df_dict = {}
     
     # Generating the index lables for the upper triangular ROI correlation matrix
@@ -113,67 +115,45 @@ def patient_corr_264(should_return=True):
     for site in os.listdir(atlas_con_path):
         print(site)
         sitepath = os.path.join(atlas_con_path, site)
-        # Special case for Toledo since it has subdirectories for additional sites
-        if site == "Toledo":
-            subfolders = os.listdir(sitepath)
-            for subfolder in subfolders:
-                subfolderpath = os.path.join(sitepath, subfolder)
-                subjects = os.listdir(subfolderpath)
-                for subject in subjects:
-                    colname = site + " " + subject
-                    subjectpath = os.path.join(subfolderpath, subject)
-                    if fname in os.listdir(subjectpath):
-                        subject_cor = pd.read_csv(os.path.join(subjectpath, fname), header=None)
-                        subject_cor = subject_cor.to_numpy()
-                        # Adjusting for correlation matrices missing rows at the end
-                        if(len(subject_cor) < 264):
-                            subject_cor_new = np.zeros((264, 264))
-                            subject_cor_new[:subject_cor.shape[0], :subject_cor.shape[1]] = subject_cor
-                            subject_cor = subject_cor_new
-                        subject_triu = list(subject_cor[np.triu_indices(len(subject_cor))])
-                        df_dict[colname] = subject_triu
-                    else:
-                        df_dict[colname] = mat_empty
-                        
-                        
-        else:
-            sitepath = os.path.join(atlas_con_path, site)
-            subjects = os.listdir(sitepath)
-                
-            for subject in subjects:
-                # Special case for Capetown, where _ needs to be removed
-                if site == "Capetown":
-                    subject_id = str(subject).replace('_','')
-                # Special case for Columbia, where leading 0s need to be removed
-                elif site == "Columbia":
-                    subject_id = str(subject).lstrip('0')
-                else:
-                    subject_id = str(subject)
-                colname = site + " " + subject_id
-                subjectpath = os.path.join(sitepath, subject)
-                # If there is matching subject and correlation matrix
-                # Map them to one another in the DataFrame
-                if fname in os.listdir(subjectpath):
-                    '''
-                    if site == "Duke":
-                        print("Subject", subject, "is ok.")
-                    '''
-                    subject_cor = pd.read_csv(os.path.join(subjectpath, fname), header=None)
-                    subject_cor = subject_cor.to_numpy()
-                    # Adjusting for correlation matrices missing rows at the end
-                    if(len(subject_cor) < 264):
-                        subject_cor_new = np.zeros((264, 264))
-                        subject_cor_new[:subject_cor.shape[0], :subject_cor.shape[1]] = subject_cor
-                        subject_cor = subject_cor_new
-                    subject_triu = list(subject_cor[np.triu_indices(len(subject_cor))])
-                    df_dict[colname] = subject_triu
-                # Otherwise, keep the correlation matrix empty
-                else:
-                    '''
-                    if site == "Duke":
-                        print("Subject", subject, "is not ok.")
-                    '''
-                    df_dict[colname] = mat_empty
+        
+        subjects_orig = os.listdir(sitepath)
+        subjects_orig = [str(s) for s in subjects_orig if ".DS_Store" not in str(s) and "Icon_" not in str(s)]
+        
+        subjects = [s.replace("sub-", "") for s in subjects_orig]
+        if site == "Capetown":
+            subjects = [str(s).replace('_','') for s in subjects]
+            subjects = [s.split('-')[1] for s in subjects]
+        # Special case for Columbia, where leading 0s need to be removed
+        elif site == "Columbia":
+            subjects = [str(s).lstrip('0') for s in subjects]
+        
+        subject_filemap = {}
+        
+        for subject_orig, subject in zip(subjects_orig, subjects):
+            subjectpath = os.path.join(sitepath, subject_orig)
+            subject_files = os.listdir(subjectpath)
+            subject_files = [f for f in subject_files if re.search(fpattern, f) is not None]
+            if subject_files:
+                subject_filemap[subject] = os.path.join(subjectpath, subject_files[0])
+                print(subject_filemap[subject])
+            
+        for subject in subjects:
+            colname = site + " " + subject
+            # If there is matching subject and correlation matrix
+            # Map them to one another in the DataFrame
+            if subject in subject_filemap:
+                subject_cor = pd.read_csv(subject_filemap[subject], sep='\t', header=None)
+                subject_cor = subject_cor.to_numpy()
+                # Adjusting for correlation matrices missing rows at the end
+                if(len(subject_cor) < 264):
+                    subject_cor_new = np.empty((264, 264), dtype=np.dtype('O'))
+                    subject_cor_new[:subject_cor.shape[0], :subject_cor.shape[1]] = subject_cor
+                    subject_cor = subject_cor_new
+                subject_triu = list(subject_cor[np.triu_indices(len(subject_cor))])
+                df_dict[colname] = subject_triu
+            # Otherwise, keep the correlation matrix empty
+            else:
+                df_dict[colname] = mat_empty
                     
     
     df = pd.DataFrame.from_dict(df_dict)
@@ -200,6 +180,6 @@ def load_patient_corr_264():
 
 
 if __name__ == "__main__":
-    site_subject(should_return=False)
-    patient_corr_264(should_return=False)
+    ##site_subject(should_return=False)
+    patient_corr_264()
     
