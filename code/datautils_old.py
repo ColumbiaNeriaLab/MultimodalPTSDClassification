@@ -404,8 +404,6 @@ def preprocess_df(df, **kwargs):
         if fill_empty == "mean":
             means = pd.Series(df[cols].mean(axis=0, skipna=True), index=cols)
             df[cols] = df[cols].fillna(means)
-        elif fill_empty == "zero":
-            df[cols] = df[cols].fillna(0)
     
     if regress_site:
         df = regress_out_site(df, cols_to_ignore=cols_to_ignore)
@@ -798,6 +796,8 @@ def load_T1(**kwargs):
     remove_missing = kwargs.get('remove_missing', True)
     
     df = load_T1_cleaned()
+    T1_diag_map = {'TEHC':'Control', 'HC':'Control', 'SubThresh':'Subthreshold', 'PTSD':'PTSD', 'Control':'Control'}
+    df['Diagnosis'] = df['Diagnosis'].map(T1_diag_map)
     
     df = clean_cols(df)
     
@@ -808,14 +808,12 @@ def load_T1(**kwargs):
         elif patient_type == 'ptsd':
             patient_filter = df['Diagnosis'] == diag_dict['PTSD']
             df = df[patient_filter]
-        '''
         elif patient_type == 'subthreshold':
             patient_filter = df['Diagnosis'] == diag_dict['Subthreshold']
             df = df[patient_filter]
         elif patient_type == 'control_ptsd':
             patient_filter = df['Diagnosis'] != diag_dict['Subthreshold']
             df = df[patient_filter]
-        '''
         else:
             raise ValueError("Invalid argument {} for kwarg 'patient_type'. Only accepts 'all', 'control', 'ptsd', 'control_ptsd', or 'subthreshold'".format(patient_type))
     
