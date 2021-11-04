@@ -907,50 +907,128 @@ if __name__ == "__main__":
     
     epochs = 500
     
-    non_data_cols = ['Age', 'Sex', 'Internal_QC', 'External_QC', 'PTSDdxTool', 'PTSDsevTool', 'LifePTSDsev']
+    non_data_cols = ['Age', 'Sex']
     
-    # For loading the control T1 dataset
-    train_control_T1_dataset, val_control_T1_dataset, test_control_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='control', percent_split=tt_split, validation_split=val_split, randomize=True, random_seed=0, train_test_split=True, scale_features='robust', fill_empty='mean')
-    # Transforms need to be applied after the dataset is generated since GaussianNoise requires the brain_columns of the dataset
-    trans = transforms.Compose([GaussianNoise(0, 0.1, train_control_T1_dataset.brain_columns), ToTorchFormat()])
-    train_control_T1_dataset.transform = trans
-    val_control_T1_dataset.transform = trans
-    test_control_T1_dataset.transform = trans
-    
-    # For loading the PTSD T1 dataset
-    PTSD_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='PTSD', randomize=True, random_seed=0, scale_features='robust', fill_empty='mean')
-    # Transforms need to be applied after the dataset is generated since GaussianNoise requires the brain_columns of the dataset
-    trans = transforms.Compose([GaussianNoise(0, 0.1, PTSD_T1_dataset.brain_columns), ToTorchFormat()])
-    PTSD_T1_dataset.transform = trans
-    
-    both_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='control_ptsd', randomize=False, scale_features='robust', fill_empty='mean')
-    trans = transforms.Compose([GaussianNoise(0, 0.1, both_T1_dataset.brain_columns), ToTorchFormat()])
-    both_T1_dataset.transform = trans
-    
-    train_dataset = train_control_T1_dataset
-    val_dataset = val_control_T1_dataset
-    test_dataset = test_control_T1_dataset
-
-    activations = ('tanh', 'selu', 'tanh', 'tanh')    
-    ##latent_sizes = [5, 10, 15, 20]
+    activations = ('tanh', 'selu', 'tanh', 'tanh')  
     latent_sizes = [5]
-    ##hidden_sizes = [50, 100, 150, 200, 250]
     hidden_sizes = [250]
-    betas = [20, 30, 40, 50, 60]
+    betas = [1]
+    
+    for run in range(1,5):
+        
+        # For loading the control T1 dataset
+        ##train_control_T1_dataset, val_control_T1_dataset, test_control_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='ontrol', percent_split=tt_split, validation_split=val_split, randomize=True, random_seed=0, train_test_split=True, scale_features='robust', fill_empty='mean')
+        train_control_T1_dataset, val_control_T1_dataset, test_control_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='control', percent_split=tt_split, validation_split=val_split, randomize=True, train_test_split=True, scale_features='robust', fill_empty='mean')
+        # Transforms need to be applied after the dataset is generated since GaussianNoise requires the brain_columns of the dataset
+        trans = transforms.Compose([GaussianNoise(0, 0.1, train_control_T1_dataset.brain_columns), ToTorchFormat()])
+        train_control_T1_dataset.transform = trans
+        val_control_T1_dataset.transform = trans
+        test_control_T1_dataset.transform = trans
+        
+        '''
+        # For loading the PTSD T1 dataset
+        ##train_PTSD_T1_dataset, val_PTSD_T1_dataset, test_PTSD_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='PTSD', percent_split=tt_split, validation_split=val_split, randomize=True, random_seed=0, train_test_split=True, scale_features='robust', fill_empty='mean')
+        train_PTSD_T1_dataset, val_PTSD_T1_dataset, test_PTSD_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='PTSD', percent_split=tt_split, validation_split=val_split, randomize=True, train_test_split=True, scale_features='robust', fill_empty='mean')
+        # Transforms need to be applied after the dataset is generated since GaussianNoise requires the brain_columns of the dataset
+        trans = transforms.Compose([GaussianNoise(0, 0.1, train_control_T1_dataset.brain_columns), ToTorchFormat()])
+        train_PTSD_T1_dataset.transform = trans
+        val_PTSD_T1_dataset.transform = trans
+        test_PTSD_T1_dataset.transform = trans
+        '''
+        
+        # For loading the PTSD T1 dataset unsplit
+        #PTSD_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='PTSD', randomize=True, random_seed=0, scale_features='robust', fill_empty='mean')
+        PTSD_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='PTSD', randomize=True, scale_features='robust', fill_empty='mean')
+        # Transforms need to be applied after the dataset is generated since GaussianNoise requires the brain_columns of the dataset
+        trans = transforms.Compose([GaussianNoise(0, 0.1, PTSD_T1_dataset.brain_columns), ToTorchFormat()])
+        PTSD_T1_dataset.transform = trans
+        
+        '''
+        # For loading the control T1 dataset unsplit
+        ##control_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='control', randomize=True, random_seed=0, scale_features='robust', fill_empty='mean')
+        control_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='control', randomize=True, scale_features='robust', fill_empty='mean')
+        # Transforms need to be applied after the dataset is generated since GaussianNoise requires the brain_columns of the dataset
+        trans = transforms.Compose([GaussianNoise(0, 0.1, control_T1_dataset.brain_columns), ToTorchFormat()])
+        control_T1_dataset.transform = trans
+        '''
+        
+        both_T1_dataset = generate_datasets(dataset_type='T1', non_data_cols=non_data_cols, patient_type='control_ptsd', randomize=False, scale_features='robust', fill_empty='mean')
+        trans = transforms.Compose([GaussianNoise(0, 0.1, both_T1_dataset.brain_columns), ToTorchFormat()])
+        both_T1_dataset.transform = trans
+        
+        train_dataset = train_control_T1_dataset
+        val_dataset = val_control_T1_dataset
+        test_dataset = test_control_T1_dataset
+        
+        for latent_size in latent_sizes:
+            for hidden_size in hidden_sizes:
+                for beta in betas:
+                    net_name = 'control_{}_{}_{}_b{}_run{}'.format(train_dataset.dataset_type, latent_size, hidden_size, beta, run)
+                    
+                    train_net(net_name, train_dataset, num_epochs=epochs, until=epochs, hidden_size=hidden_size, latent_size=latent_size, activations=activations,
+                    load_net=False, overwrite=True, overwrite_log=True, learning_rate=1e-5, l2=0.1, stats_list=stats_list, validation=[val_dataset, PTSD_T1_dataset], beta=beta)
+                    
+                    validation(net_name, val_dataset, overwrite_log=True)
+                    validation(net_name, PTSD_T1_dataset)
+                    
+                    extract_latents(net_name, both_T1_dataset, fname_tag='both')
+    
+    '''
+    # For LOSOCV
+    # For loading the control T1 dataset
+    for dataset_tuple, site in generate_datasets_LOSOCV(dataset_type='T1', non_data_cols=non_data_cols, patient_type='control', percent_split=tt_split, validation_split=val_split, randomize=True, random_seed=0, train_test_split=True, scale_features='robust', fill_empty='mean'):
+        print("LOSOCV on Site:", site)
+        train_control_T1_dataset, val_control_T1_dataset, test_control_T1_dataset = dataset_tuple
+        # Transforms need to be applied after the dataset is generated since GaussianNoise requires the brain_columns of the dataset
+        trans = transforms.Compose([GaussianNoise(0, 0.1, train_control_T1_dataset.brain_columns), ToTorchFormat()])
+        train_control_T1_dataset.transform = trans
+        val_control_T1_dataset.transform = trans
+        test_control_T1_dataset.transform = trans
+        
+        train_dataset = train_control_T1_dataset
+        val_dataset = val_control_T1_dataset
+        test_dataset = test_control_T1_dataset
+
+        activations = ('tanh', 'selu', 'tanh', 'tanh')    
+        ##latent_sizes = [5, 10, 15, 20]
+        latent_sizes = [5]
+        ##hidden_sizes = [50, 100, 150, 200, 250]
+        hidden_sizes = [250]
+        ##betas = [20, 30, 40, 50, 60]
+        ##betas = [1, 2, 4, 6]
+        betas = [1]
+        
+        for latent_size in latent_sizes:
+            for hidden_size in hidden_sizes:
+                for beta in betas:
+                    net_name = 'control_{}_l{}_h{}_b{}_site_{}'.format(train_dataset.dataset_type, latent_size, hidden_size, beta, site.strip())
+                    
+                    train_net(net_name, train_dataset, num_epochs=epochs, until=epochs, hidden_size=hidden_size, latent_size=latent_size, activations=activations,
+                    load_net=False, overwrite=True, overwrite_log=True, learning_rate=1e-5, l2=0.1, stats_list=stats_list, validation=[val_dataset, PTSD_T1_dataset], beta=beta)
+                    
+                    validation(net_name, val_dataset, overwrite_log=True)
+                    validation(net_name, PTSD_T1_dataset)
+                    
+                    extract_latents(net_name, both_T1_dataset, fname_tag='both')
+    '''
+    '''
+    train_dataset = train_PTSD_T1_dataset
+    val_dataset = val_PTSD_T1_dataset
+    test_dataset = test_PTSD_T1_dataset
     
     for latent_size in latent_sizes:
         for hidden_size in hidden_sizes:
             for beta in betas:
-                net_name = 'control_{}_{}_{}_b{}'.format(train_dataset.dataset_type, latent_size, hidden_size, beta)
+                net_name = 'ptsd_{}_{}_{}_b{}_new'.format(train_dataset.dataset_type, latent_size, hidden_size, beta)
                 
                 train_net(net_name, train_dataset, num_epochs=epochs, until=epochs, hidden_size=hidden_size, latent_size=latent_size, activations=activations,
-                load_net=False, overwrite=True, overwrite_log=True, learning_rate=1e-5, l2=0.1, stats_list=stats_list, validation=[val_dataset, PTSD_T1_dataset], beta=beta)
+                load_net=False, overwrite=True, overwrite_log=True, learning_rate=1e-5, l2=0.1, stats_list=stats_list, validation=[val_dataset, control_T1_dataset], beta=beta)
                 
                 validation(net_name, val_dataset, overwrite_log=True)
-                validation(net_name, PTSD_T1_dataset)
+                validation(net_name, control_T1_dataset)
                 
                 extract_latents(net_name, both_T1_dataset, fname_tag='both')
-    
+    '''
     '''
     # T1 COMBAT
     
@@ -996,7 +1074,6 @@ if __name__ == "__main__":
             extract_latents(net_name, both_T1_dataset, fname_tag='both')
     
     '''
-    
     '''
     # RS
     
@@ -1027,14 +1104,17 @@ if __name__ == "__main__":
     hidden_size = 400
     latent_size = 10
     activations = ('tanh', 'selu', 'tanh', 'tanh')
+    beta = 1
+    l2list = [0.1, 0.5, 1, 2]
     
-    net_name = 'control_{}_{}_{}'.format(train_dataset.dataset_type, latent_size, hidden_size)
+    for l2 in l2list:
+        net_name = 'control_{}_{}l_{}h_{}b_{}r'.format(train_dataset.dataset_type, latent_size, hidden_size, beta, l2)
 
-    train_net(net_name, train_dataset, num_epochs=epochs, until=epochs, hidden_size=hidden_size, latent_size=latent_size, activations=activations,
-    load_net=False, overwrite=True, overwrite_log=True, l2=0.1, stats_list=stats_list, validation=[test_dataset, PTSD_RS_dataset])
-    
-    validation(net_name, test_dataset, overwrite_log=True) 
-    validation(net_name, PTSD_RS_dataset)
-    
-    extract_latents(net_name, both_RS_dataset, fname_tag='both')
+        train_net(net_name, train_dataset, num_epochs=epochs, until=epochs, hidden_size=hidden_size, latent_size=latent_size, activations=activations,
+        load_net=False, overwrite=True, overwrite_log=True, l2=l2, stats_list=stats_list, validation=[test_dataset, PTSD_RS_dataset])
+        
+        validation(net_name, test_dataset, overwrite_log=True) 
+        validation(net_name, PTSD_RS_dataset)
+        
+        extract_latents(net_name, both_RS_dataset, fname_tag='both')
     '''

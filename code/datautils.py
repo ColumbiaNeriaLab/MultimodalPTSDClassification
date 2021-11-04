@@ -150,6 +150,7 @@ class ToTorchFormat:
         return sample_new
 
 
+
 def match_corr_clinical(should_return=True):
     '''
     Matches the correlation matrices to the clinical data of patients
@@ -359,6 +360,11 @@ def remove_empty(df, columns):
     ##print(df[columns].columns[df[columns].isna().any(axis=0)].tolist())
     
 
+def remove_site(df, site):
+    df = df[df['Site'] != site]
+    return df
+    
+
 def preprocess_df(df, **kwargs):
     '''
         A utility function for scaling features and/or reducing the ROI if desired
@@ -433,7 +439,7 @@ def split_df(df, **kwargs):
             percent_split: float(default = None)
                 The percent to split by between 0.0 and 1.0
             validation_split: float(default = None)
-                The amount from the training set to use for the validation set
+                The percent from the training set to use for the validation set
         
         return:
             DataFrame: if train_test_split is False
@@ -808,14 +814,13 @@ def load_T1(**kwargs):
         elif patient_type == 'ptsd':
             patient_filter = df['Diagnosis'] == diag_dict['PTSD']
             df = df[patient_filter]
-        '''
-        elif patient_type == 'subthreshold':
-            patient_filter = df['Diagnosis'] == diag_dict['Subthreshold']
-            df = df[patient_filter]
+        
+        ##elif patient_type == 'subthreshold':
+        ##    patient_filter = df['Diagnosis'] == diag_dict['Subthreshold']
+        ##    df = df[patient_filter]
         elif patient_type == 'control_ptsd':
             patient_filter = df['Diagnosis'] != diag_dict['Subthreshold']
             df = df[patient_filter]
-        '''
         else:
             raise ValueError("Invalid argument {} for kwarg 'patient_type'. Only accepts 'all', 'control', 'ptsd', 'control_ptsd', or 'subthreshold'".format(patient_type))
     
@@ -873,6 +878,30 @@ def load_T1_combat(**kwargs):
     return df
 
 
+def generate_dataset(load_corr=True, load_clinical=True, load_serialized=True, **kwargs):
+        
+    dataset_type = kwargs.get('dataset_type', 'RS')
+    non_data_cols = kwargs.get('non_data_cols', [])
+    
+    kwargs['cols_to_ignore'] = non_data_cols
+    
+    if dataset_type == 'RS':
+        if load_serialized:
+            df = load_corr_clinical_serialized(load_corr=load_corr, load_clinical=load_clinical, **kwargs)
+        else:
+            df = load_corr_clinical(load_corr, load_clinical, **kwargs)
+    elif dataset_type == 'DTI':
+        df = load_DTI(**kwargs)
+    elif dataset_type == 'T1':
+        df = load_T1(**kwargs)
+    elif dataset_type == 'T1_combat':
+        df = load_T1_combat(**kwargs)
+    else:
+        raise ValueError("Invalid argument {} for kwarg 'type'. Only accepts 'RS', 'DTI', or 'T1'".format(dataset_type))
+    
+    return df
+
+
 def generate_datasets(load_corr=True, load_clinical=True, load_serialized=True, **kwargs):
     '''
     Generates the PatientDataSets of the desired format
@@ -919,19 +948,7 @@ def generate_datasets(load_corr=True, load_clinical=True, load_serialized=True, 
     
     kwargs['cols_to_ignore'] = non_data_cols
     
-    if dataset_type == 'RS':
-        if load_serialized:
-            df = load_corr_clinical_serialized(load_corr=load_corr, load_clinical=load_clinical, **kwargs)
-        else:
-            df = load_corr_clinical(load_corr, load_clinical, **kwargs)
-    elif dataset_type == 'DTI':
-        df = load_DTI(**kwargs)
-    elif dataset_type == 'T1':
-        df = load_T1(**kwargs)
-    elif dataset_type == 'T1_combat':
-        df = load_T1_combat(**kwargs)
-    else:
-        raise ValueError("Invalid argument {} for kwarg 'type'. Only accepts 'RS', 'DTI', or 'T1'".format(dataset_type))
+    df = generate_dataset(load_corr, load_clinical, load_serialized, **kwargs)
     
     dfs = split_df(df, **kwargs)
     
@@ -944,10 +961,42 @@ def generate_datasets(load_corr=True, load_clinical=True, load_serialized=True, 
             train_dataset = PatientDataSet(dfs[0], dataset_type=dataset_type, non_data_cols=non_data_cols)
             val_dataset = PatientDataSet(dfs[1], dataset_type=dataset_type, non_data_cols=non_data_cols)
             test_dataset = PatientDataSet(dfs[2], dataset_type=dataset_type, non_data_cols=non_data_cols)
-            return train_dataset, val_dataset, test_dataset
+            return train_dataset, val_dataset, test_dataset    
     else:
         return PatientDataSet(dfs, dataset_type=dataset_type, non_data_cols=non_data_cols)
-
+                
+                
+def generate_datasets_LOSOCV(load_corr=True, load_clinical=True, load_serialized=True, **kwargs):
+    
+    dataset_type = kwargs.get('dataset_type', 'RS')
+    non_data_cols = kwargs.get('non_data_cols', [])
+    
+    kwargs['cols_to_ignore'] = non_data_cols
+    
+    df = generate_dataset(load_corr, load_clinical, load_serialized, **kwargs)
+    
+    print(df['Site'].unique().tolist())
+     
+    for site in df['Site'].unique():
+        dfs = split_df(df, **kwargs)
+        
+        if type(dfs) is tuple:
+            if len(dfs) == 2:
+                train_df = dfs[0]
+                train_df = remove_site(df, site)
+                train_dataset = PatientDataSet(train_df, dataset_type=dataset_type, non_data_cols=non_data_cols)
+                test_dataset = PatientDataSet(dfs[1], dataset_type=dataset_type, non_data_cols=non_data_cols)
+                yield (train_dataset, test_dataset), site
+            elif len(dfs) == 3:
+                train_df = dfs[0]
+                train_df = remove_site(df, site)
+                train_dataset = PatientDataSet(train_df, dataset_type=dataset_type, non_data_cols=non_data_cols)
+                val_dataset = PatientDataSet(dfs[1], dataset_type=dataset_type, non_data_cols=non_data_cols)
+                test_dataset = PatientDataSet(dfs[2], dataset_type=dataset_type, non_data_cols=non_data_cols)
+                yield (train_dataset, val_dataset, test_dataset), site  
+        else:
+            yield PatientDataSet(dfs, dataset_type=dataset_type, non_data_cols=non_data_cols), site
+    
 
 if __name__ == "__main__":
     match_corr_clinical(False)
