@@ -19,7 +19,7 @@ Stanford | S456 | Control | 76 | F | 1 | 0.5453 | ...
 
 To use:
 1. Replace the string stored in **RS_csv_path** with the path to your csv file.
-2. Run the dataset generation code. If you want to train on PTSD or both instead of control you can change **patient_type** to 'ptsd' or 'control_ptsd' in the first call to generate_datasets in the section **Dataset Generation For Training On Control**.
+2. Run the dataset generation code. If you want to train on PTSD or both instead of control you can change **patient_type** to 'ptsd' or 'control_ptsd' in the first call to generate_datasets in the section **Dataset Generation For Training On Control**. If you want to train including Age and Sex, you must set non_data_cols = [] instead of \['Age', 'Sex'\].
 3. Set the desired hyperparameters for size of hidden layer, number of latents, beta (weight of KLD term), l2, and learning rate. These are in list form so that multiple models with each combination of hyperparameters can be run. In general the default values were determined by a sparse gridsearch.
 4. Unless otherwise needed, leave the activations as is. If changing the activation of a layer is desired, the layers are arranged as follows: (input, encoder, decoder, output). The options for layer types is 'tanh', 'relu', 'selu', or 'sigmoid', and defaults to linear layer for all other choices.
 5. Then you can specify the number of epochs to train for.
