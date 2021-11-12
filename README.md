@@ -8,6 +8,7 @@ Dataset format for Resting State data must be the following:
 3. **Diagnosis**: "Control" or "PTSD"
 4. **Age**: Numerical age
 5. **Sex**: "M" or "F"
+6. **ROIx-ROIy**: All the resting state ROIs ordered in upper triangular matrix form where x and y represent the index of each ROI
 
 Site | SubjectID | Diagnosis | Age | Sex | ROI1-ROI1 | ROI1-ROI2 | ...
 --- | --- | --- | --- |--- |--- |--- |---
