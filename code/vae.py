@@ -508,7 +508,6 @@ def train_net(net_name, dataset, **kwargs):
     load_stats = kwargs.get('load_stats', True)
     stats_list = kwargs.get('stats_list', ["epoch", "loss", "loss_per_feature"])
     
-    
     model_path = make_model_path(net_name)
     
     log = Log(log_name=net_name+'_training_log.txt', should_log=should_log, log_path=get_model_path(net_name), overwrite=overwrite_log)

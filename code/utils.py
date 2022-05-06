@@ -288,3 +288,7 @@ class Stats:
         filepath = os.path.join(self.path, self.filename)
         with open(filepath, 'wb') as pickle_file:
             pickle.dump(self.stats, pickle_file)
+            
+    def __getitem__(self, key):
+        
+        return self.stats[key]

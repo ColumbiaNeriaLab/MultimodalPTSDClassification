@@ -2,6 +2,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import scipy.stats as scistats
 from utils import Stats
+import os
+import numpy as np
+import pandas as pd
 
 
 def plot_loss(net_name, plot_title=None, stat_label_dict=None, save_name=None):
@@ -39,7 +42,7 @@ def plot_loss(net_name, plot_title=None, stat_label_dict=None, save_name=None):
                 ax1.plot(x, y, label=stat_label_new)
         else:
             ax1.plot(x, y, label=stat_label_new)
-    ax1.set_ylabel('Loss Divided by # Features'.format(type_name))
+    ax1.set_ylabel('Loss Divided by # Features')
     ax1.set_xlabel('Epoch')
     if plot_title is not None:
         ax1.set_title(plot_title)

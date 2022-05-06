@@ -130,3 +130,7 @@ dmypy.json
 
 # Custom ignores
 **/code/dataexplorer.ipynb
+**/code/vae_nets/
+**/code/RS_data.csv
+**/code/CreateAggData.ipynb
+**/code/plots/
